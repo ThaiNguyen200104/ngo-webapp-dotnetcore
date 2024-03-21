@@ -19,5 +19,7 @@ public partial class Blog
 
     public virtual Appeal Appeal { get; set; } = null!;
 
+    public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
+
     public virtual User? User { get; set; }
 }

@@ -8,31 +8,73 @@ public class AdminController : Controller
 {
 	public IActionResult LoginAdmin() => View();
 
-	public async Task<IActionResult> LoginAdminPOST(AdminLoginViewModel model)
+	[HttpPost]
+	public async Task<IActionResult> LoginAdmin(AdminLoginViewModel model)
 	{
 		if (ModelState.IsValid)
 		{
-			using (NgoManagementContext context = new())
+			try
 			{
-				var user = await context.Users
-					.FirstOrDefaultAsync(u => u.Email == model.Email);
-
-				if (user != null && BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
+				using (NgoManagementContext context = new NgoManagementContext())
 				{
-					HttpContext.Session.SetString("UserID", user.UserId.ToString());
-					HttpContext.Session.SetString("Is_Admin", user.IsAdmin.ToString());
-					if (user.IsAdmin != false)
+					var user = await context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+					if (user != null)
 					{
-						return RedirectToAction("Index", "Admin");
+						if (BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
+						{
+							if (user.IsAdmin)
+							{
+								HttpContext.Session.SetString("UserID", user.UserId.ToString());
+								HttpContext.Session.SetString("Is_Admin", user.IsAdmin.ToString());
+
+								return RedirectToAction("Index"); // Redirect to the admin dashboard
+							}
+							else
+							{
+								// User is not an admin
+								throw new UnauthorizedAccessException("You do not have admin privileges.");
+							}
+						}
+						else
+						{
+							// Password is incorrect
+							throw new ArgumentException("Invalid login attempt.");
+						}
+					}
+					else
+					{
+						// Email does not exist
+						throw new ArgumentException("Invalid login attempt.");
 					}
 				}
-				ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+			}
+			catch (Exception ex)
+			{
+				ModelState.AddModelError(string.Empty, ex.Message);
 				return View(model);
 			}
 		}
 		return View(model);
 	}
 
+
+	[HttpPost]
+	public IActionResult Logout()
+	{
+		HttpContext.Session.Clear();
+		return RedirectToAction("LoginAdmin", "Admin");
+	}
+
+
+	public IActionResult Dashboard()
+	{
+		if (HttpContext.Session.GetString("Is_Admin") != "True")
+		{
+			return RedirectToAction("LoginAdmin"); // Redirect non-admin users to the login page
+		}
+
+		return View(); // Return the Dashboard view for admin users
+	}
 	public IActionResult Index() => View();
 
 }

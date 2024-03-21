@@ -11,7 +11,7 @@ public partial class Donation
 
     public int? UserId { get; set; }
 
-    public int AppealsId { get; set; }
+    public int? AppealsId { get; set; }
 
     public DateTime DonationDate { get; set; }
 
